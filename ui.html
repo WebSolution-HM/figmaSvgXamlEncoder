@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG to XAML</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 8px;
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            color: #2d3748;
+            font-size: 14px;
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            margin: 0 auto;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .title {
+            font-weight: 700;
+            font-size: 22px;
+            margin-bottom: 16px;
+            color: #1a202c;
+            text-align: center;
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.2);
+        }
+        
+        .status {
+            margin-bottom: 16px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            font-weight: 400;
+            text-align: center;
+            transition: all 0.3s ease;
+            font-size: 13px;
+        }
+        
+        .success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        
+        .error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+        
+        .action-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .status-inline {
+            margin: 0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .button {
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+        }
+        
+        .button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+        }
+        
+        .button:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 4px rgba(14, 165, 233, 0.3);
+        }
+        
+        .input-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+        
+        .input-label {
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #2d3748;
+            font-size: 13px;
+            display: block;
+        }
+        
+        .input-field {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 13px;
+            background: white;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+        
+        .input-field:focus {
+            outline: none;
+            border-color: #0ea5e9;
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+        }
+        
+        .input-field.error {
+            border-color: #f56565;
+            background: #fed7d7;
+        }
+        
+        .input-error {
+            color: #e53e3e;
+            font-size: 11px;
+            margin-top: 4px;
+            display: none;
+        }
+        
+        .code-block {
+            margin: 12px 0;
+            padding: 12px;
+            background: #1a202c;
+            border: 1px solid #2d3748;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 280px;
+            overflow-y: auto;
+            text-align: left;
+            cursor: pointer;
+            user-select: all;
+            color: #e2e8f0;
+            transition: all 0.3s ease;
+            position: relative;
+            border-radius: 8px;
+            line-height: 1.4;
+        }
+        
+        .code-block:hover {
+            background: #2d3748;
+            border-color: #4a5568;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .code-block::before {
+            content: "클릭하여 복사";
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            font-size: 10px;
+            color: #a0aec0;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .code-block:hover::before {
+            opacity: 1;
+        }
+        
+        .label {
+            font-weight: 600;            
+            text-align: left;
+            color: #2d3748;
+            font-size: 15px;
+        }
+        
+        .label-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .section {
+            margin-bottom: 18px;
+        }
+        
+        .instruction {
+            font-size: 11px;
+            color: #718096;
+            font-style: italic;
+            white-space: nowrap;
+        }
+        
+        .node-info-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+            text-align: center;
+            font-size: 13px;
+            color: #495057;
+            font-weight: 400;
+            box-shadow: 1px 1px 2px 1px rgba(0, 0, 0, 0.281) inset;
+        }
+        
+        .node-name {
+            font-weight: 600;
+        }
+        
+        #results {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* 스크롤바 스타일링 */
+        .code-block::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .code-block::-webkit-scrollbar-track {
+            background: #2d3748;
+            border-radius: 3px;
+        }
+        
+        .code-block::-webkit-scrollbar-thumb {
+            background: #4a5568;
+            border-radius: 3px;
+        }
+        
+        .code-block::-webkit-scrollbar-thumb:hover {
+            background: #718096;
+        }
+        
+        .xaml-highlight {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- SVG → XAML 변환 시작 -->
+        <div class="title">SVG → <span class="xaml-highlight">XAML</span> 변환</div>
+        <div id="nodeInfoBox" class="node-info-box" style="display:none;"></div>
+        <div id="status" class="status">
+            벡터 요소를 선택해주세요...
+        </div>
+        <div id="actionRow" class="action-row" style="display: none;">
+            <div id="statusInline" class="status-inline">✅ 변환 완료!</div>
+            <button id="copyBtn" class="button">클립보드에 복사</button>
+        </div>
+        <div id="keyInputGroup" class="input-group" style="display: none;">
+            <label class="input-label" for="keyInput">x:Key 이름:</label>
+            <input type="text" id="keyInput" class="input-field" placeholder="예: MyIcon">
+            <div id="keyInputError" class="input-error">영어와 숫자만 입력해주세요 (한글 불가)</div>
+        </div>
+        <div id="convertRow" class="action-row" style="display: none;">
+            <button id="convertBtn" class="button">변환</button>
+        </div>
+        <div id="results" style="display: none;">
+            <div class="section">
+                <div class="label-row">
+                    <div class="label"><span class="xaml-highlight">XAML 코드:</span></div>
+                    <div class="instruction">클릭하면 텍스트가 선택됩니다 (Ctrl+C로 복사)</div>
+                </div>
+                <div id="xamlCode" class="code-block" onclick="selectText(this)"></div>
+            </div>
+            <div class="section">
+                <div class="label-row">
+                    <div class="label">원본 SVG:</div>
+                    <div class="instruction">클릭하면 텍스트가 선택됩니다 (Ctrl+C로 복사)</div>
+                </div>
+                <div id="originalSvg" class="code-block" onclick="selectText(this)"></div>
+            </div>
+        </div>
+        <!-- //SVG → XAML 변환 끝 -->
+    </div>
+
+    <!-- JavaScript 시작 -->
+    <script>
+        let currentXamlCode = '';
+        let currentNodeName = '';
+        
+        // 텍스트 선택 함수
+        function selectText(element) {
+            if (window.getSelection) {
+                const selection = window.getSelection();
+                const range = document.createRange();
+                range.selectNodeContents(element);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+        }
+        
+        // Key 이름 유효성 검사 함수
+        function isValidKeyName(keyName) {
+            // 영어와 숫자만 허용 (시작은 영어로)
+            return /^[a-zA-Z][a-zA-Z0-9]*$/.test(keyName);
+        }
+        
+        // 한글이 포함되어 있는지 확인
+        function hasKorean(text) {
+            return /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(text);
+        }
+        
+        // Key 이름을 영어+숫자로 변환하는 함수
+        function sanitizeKeyName(name) {
+            // 영어와 숫자만 남기고 제거
+            return name.replace(/[^a-zA-Z0-9]/g, '');
+        }
+        
+        // Key 입력 필드 검증
+        function validateKeyInput() {
+            const keyInput = document.getElementById('keyInput');
+            const errorDiv = document.getElementById('keyInputError');
+            const convertBtn = document.getElementById('convertBtn');
+            const keyValue = keyInput.value.trim();
+            
+            if (keyValue === '') {
+                keyInput.classList.remove('error');
+                errorDiv.style.display = 'none';
+                convertBtn.disabled = false;
+                return true;
+            }
+            
+            if (!isValidKeyName(keyValue)) {
+                keyInput.classList.add('error');
+                errorDiv.style.display = 'block';
+                convertBtn.disabled = true;
+                return false;
+            }
+            
+            keyInput.classList.remove('error');
+            errorDiv.style.display = 'none';
+            convertBtn.disabled = false;
+            return true;
+        }
+        
+        // 메시지 받기
+        window.onmessage = (event) => {
+            const msg = event.data.pluginMessage;
+            
+            if (msg.type === 'selection-ready') {
+                // 선택된 요소가 있으면 변환 버튼 표시 (자동 변환 안 함)
+                document.getElementById('status').style.display = 'none';
+                currentNodeName = msg.nodeName;
+                
+                // 노드 정보 박스 표시
+                document.getElementById('nodeInfoBox').innerHTML = `선택된 요소: <span class="node-name">${msg.nodeName}</span>`;
+                document.getElementById('nodeInfoBox').style.display = 'block';
+                
+                // Key 입력 필드 표시 및 기본값 설정
+                const keyInput = document.getElementById('keyInput');
+                const sanitizedName = sanitizeKeyName(msg.nodeName);
+                
+                if (sanitizedName === '' || hasKorean(msg.nodeName)) {
+                    // 한글이거나 영어/숫자가 없으면 경고와 함께 빈 값
+                    keyInput.value = '';
+                    keyInput.placeholder = '영어와 숫자만 입력해주세요 (예: MyIcon)';
+                    document.getElementById('keyInputError').style.display = 'block';
+                    document.getElementById('keyInputError').textContent = '레이어명에 한글이 포함되어 있습니다. 영어와 숫자로 입력해주세요.';
+                    keyInput.classList.add('error');
+                    document.getElementById('convertBtn').disabled = true;
+                } else {
+                    // 유효한 이름이면 기본값으로 설정
+                    keyInput.value = sanitizedName;
+                    keyInput.placeholder = '예: MyIcon';
+                    document.getElementById('keyInputError').style.display = 'none';
+                    keyInput.classList.remove('error');
+                    document.getElementById('convertBtn').disabled = false;
+                }
+                
+                document.getElementById('keyInputGroup').style.display = 'block';
+                
+                // 변환 버튼 표시
+                document.getElementById('convertRow').style.display = 'flex';
+                
+                // 기존 결과 숨기기
+                document.getElementById('actionRow').style.display = 'none';
+                document.getElementById('results').style.display = 'none';
+                
+            } else if (msg.type === 'conversion-completed') {
+                currentXamlCode = msg.xamlString;
+                
+                // 변환 버튼 숨기기
+                document.getElementById('convertRow').style.display = 'none';
+                
+                // 복사 버튼 표시
+                document.getElementById('actionRow').style.display = 'flex';
+                
+                // 원본 SVG 표시
+                document.getElementById('originalSvg').textContent = msg.originalSvg;
+                
+                // XAML 코드 표시
+                document.getElementById('xamlCode').textContent = currentXamlCode;
+                
+                // 결과 섹션 표시
+                document.getElementById('results').style.display = 'block';
+                
+            } else if (msg.type === 'no-selection') {
+                document.getElementById('status').innerHTML = '벡터 요소를 선택해주세요';
+                document.getElementById('status').className = 'status';
+                document.getElementById('status').style.display = 'block';
+                document.getElementById('results').style.display = 'none';
+                document.getElementById('actionRow').style.display = 'none';
+                document.getElementById('convertRow').style.display = 'none';
+                document.getElementById('keyInputGroup').style.display = 'none';
+                document.getElementById('nodeInfoBox').style.display = 'none';
+                
+            } else if (msg.type === 'multiple-selection') {
+                document.getElementById('status').innerHTML = '⚠️ 하나의 요소만 선택해주세요';
+                document.getElementById('status').className = 'status warning';
+                document.getElementById('status').style.display = 'block';
+                document.getElementById('results').style.display = 'none';
+                document.getElementById('actionRow').style.display = 'none';
+                document.getElementById('convertRow').style.display = 'none';
+                document.getElementById('keyInputGroup').style.display = 'none';
+                document.getElementById('nodeInfoBox').style.display = 'none';
+                
+            } else if (msg.type === 'error') {
+                document.getElementById('status').innerHTML = `❌ ${msg.message}`;
+                document.getElementById('status').className = 'status error';
+                document.getElementById('status').style.display = 'block';
+                document.getElementById('results').style.display = 'none';
+                document.getElementById('actionRow').style.display = 'none';
+                document.getElementById('convertRow').style.display = 'none';
+                document.getElementById('keyInputGroup').style.display = 'none';
+                document.getElementById('nodeInfoBox').style.display = 'none';
+            }
+        };
+        
+        // 클립보드에 복사 (버튼 클릭 시에만 동작)
+        function copyToClipboard() {
+            console.log('XAML 길이:', currentXamlCode.length);
+            
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(currentXamlCode).then(() => {
+                    console.log('clipboard API 복사 성공');
+                    document.getElementById('statusInline').innerHTML = '✅ XAML 복사 완료!';
+                }).catch(err => {
+                    console.log('clipboard API 실패:', err);
+                    copyMethod2();
+                });
+            } else {
+                copyMethod2();
+            }
+        }
+        
+        // 방법 2: execCommand 사용 (개선된 버전)
+        function copyMethod2() {
+            try {
+                const textArea = document.createElement('textarea');
+                textArea.value = currentXamlCode;
+                
+                // 더 안전한 스타일 설정
+                textArea.style.cssText = `
+                    position: fixed;
+                    top: -1000px;
+                    left: -1000px;
+                    width: 1px;
+                    height: 1px;
+                    padding: 0;
+                    border: none;
+                    outline: none;
+                    box-shadow: none;
+                    background: transparent;
+                `;
+                
+                document.body.appendChild(textArea);
+                
+                // 포커스 및 선택
+                textArea.focus();
+                textArea.select();
+                
+                // 전체 텍스트 선택 확인
+                textArea.setSelectionRange(0, textArea.value.length);
+                
+                const successful = document.execCommand('copy');
+                console.log('execCommand 결과:', successful);
+                console.log('선택된 텍스트 길이:', window.getSelection().toString().length);
+                
+                document.body.removeChild(textArea);
+                
+                if (successful) {
+                    document.getElementById('statusInline').innerHTML = '✅ XAML 복사 완료!';
+                } else {
+                    copyMethod3();
+                }
+            } catch (err) {
+                console.log('execCommand 오류:', err);
+                copyMethod3();
+            }
+        }
+        
+        // 방법 3: 직접 선택 방법
+        function copyMethod3() {
+            try {
+                // XAML 코드 블록을 직접 선택
+                const xamlElement = document.getElementById('xamlCode');
+                const range = document.createRange();
+                range.selectNodeContents(xamlElement);
+                
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+                
+                const successful = document.execCommand('copy');
+                console.log('방법3 execCommand 결과:', successful);
+                
+                if (successful) {
+                    document.getElementById('statusInline').innerHTML = '✅ XAML 복사 완료!';
+                } else {
+                    copyFailed();
+                }
+            } catch (err) {
+                console.log('방법3 오류:', err);
+                copyFailed();
+            }
+        }
+        
+        // 복사 실패 처리
+        function copyFailed() {
+            document.getElementById('statusInline').innerHTML = '❌ 복사 실패';
+            
+            // XAML 코드 자동 선택
+            const xamlElement = document.getElementById('xamlCode');
+            setTimeout(() => {
+                selectText(xamlElement);
+            }, 500);
+        }
+        
+        // 변환 요청 함수
+        function requestConversion() {
+            // 입력 검증
+            if (!validateKeyInput()) {
+                return;
+            }
+            
+            const keyInput = document.getElementById('keyInput');
+            let keyName = keyInput.value.trim();
+            
+            // 비어있으면 기본값 사용
+            if (keyName === '') {
+                const sanitized = sanitizeKeyName(currentNodeName);
+                keyName = sanitized || 'Icon';
+            }
+            
+            parent.postMessage({ 
+                pluginMessage: { 
+                    type: 'convert-request',
+                    keyName: keyName
+                } 
+            }, '*');
+        }
+        
+        // 버튼 이벤트
+        document.getElementById('copyBtn').onclick = copyToClipboard;
+        document.getElementById('convertBtn').onclick = requestConversion;
+        
+        // Key 입력 필드 실시간 검증
+        document.getElementById('keyInput').addEventListener('input', validateKeyInput);
+        document.getElementById('keyInput').addEventListener('blur', validateKeyInput);
+    </script>
+    <!-- //JavaScript 끝 -->
+</body>
+</html> 
